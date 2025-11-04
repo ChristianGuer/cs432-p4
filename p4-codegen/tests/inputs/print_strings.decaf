@@ -1,0 +1,7 @@
+def int main()
+{
+    print_str("Hello, world!\n");
+    print_str("My name is \"Decaf\"\n");
+    print_str("Good\tbye!\n");
+    return 0;
+}

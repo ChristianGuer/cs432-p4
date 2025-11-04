@@ -1,0 +1,7 @@
+def int main()
+{
+    print_bool(true);
+    print_bool(false);
+    return 0;
+}
+

@@ -1,0 +1,4 @@
+Hello, world!
+My name is "Decaf"
+Good	bye!
+RETURN VALUE = 0

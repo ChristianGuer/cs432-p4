@@ -16,18 +16,6 @@ typedef struct CodeGenData
      * @brief Reference to the epilogue jump label for the current function
      */
     Operand current_epilogue_jump_label;
-    /**
-     * @brief Label to jump to when continues are encountered
-     */
-    Operand current_continue_jump_label;
-    /**
-     * @brief Label to jump to when breaks are encountered
-     */
-    Operand current_body_jump_label;
-    /**
-     * @brief Label to jump to when breaks are encountered
-     */
-    Operand current_break_jump_label;
 
     /* add any new desired state information (and clean it up in CodeGenData_free) */
 } CodeGenData;
@@ -109,6 +97,7 @@ Operand var_offset(ASTNode *node, Symbol *variable)
     case STACK_PARAM:
     case STACK_LOCAL:
         op = int_const(variable->offset);
+        break;
     default:
         break;
     }
@@ -189,7 +178,8 @@ void CodeGenVisitor_gen_return(NodeVisitor *visitor, ASTNode *node)
     Operand reg = ASTNode_get_temp_reg(node->funcreturn.value);
     EMIT2OP(I2I, reg, return_register());
 
-    // TODO jump to epilogue
+    // jump to epilogue
+    EMIT1OP(JUMP, DATA->current_epilogue_jump_label);
 }
 
 void CodeGenVisitor_gen_literal(NodeVisitor *visitor, ASTNode *node)
@@ -291,15 +281,34 @@ void CodeGenVisitor_gen_unaryop(NodeVisitor *visitor, ASTNode *node)
 
 void CodeGenVisitor_gen_location(NodeVisitor *visitor, ASTNode *node)
 {
-    // Get base pointer and offset
+    // Get symbol and base pointer
     Symbol *sym = lookup_symbol(node, node->location.name);
     Operand basePointer = var_base(node, sym);
-    Operand offset = var_offset(node, sym);
+    if (!node->location.index)
+    {
+        // Non Array Case
+        Operand offset = var_offset(node, sym);
+        Operand newReg = virtual_register();
+        ASTNode_set_temp_reg(node, newReg);
+        EMIT3OP(LOAD_AI, basePointer, offset, newReg);
+        return;
+    }
 
-    // Create ILOC
+    // Array case
+    ASTNode_copy_code(node, node->location.index);
+    Operand expReg = ASTNode_get_temp_reg(node->location.index);
+
+    // calc word size
+    Operand offsetReg = virtual_register();
+    Operand wordSize = int_const(WORD_SIZE);
+    EMIT3OP(MULT_I, expReg, wordSize, offsetReg);
+
+    // load value
     Operand newReg = virtual_register();
     ASTNode_set_temp_reg(node, newReg);
-    EMIT3OP(LOAD_AI, basePointer, offset, newReg);
+
+    // Load value into register
+    EMIT3OP(LOAD_AO, basePointer, offsetReg, newReg);
 }
 
 void CodeGenVisitor_gen_assignment(NodeVisitor *visitor, ASTNode *node)
@@ -307,14 +316,36 @@ void CodeGenVisitor_gen_assignment(NodeVisitor *visitor, ASTNode *node)
     // Get base pointer and offset
     Symbol *sym = lookup_symbol(node, node->assignment.location->location.name);
     Operand basePointer = var_base(node, sym);
-    Operand offset = var_offset(node, sym);
+    Operand expReg;
 
-    // Copy expression and get register
+    if (!node->assignment.location->location.index)
+    {
+        // Non array case
+        Operand offset = var_offset(node, sym);
+        // Copy expression and get register
+        ASTNode_copy_code(node, node->assignment.value);
+        expReg = ASTNode_get_temp_reg(node->assignment.value);
+
+        // Create ILOC code
+        EMIT3OP(STORE_AI, expReg, basePointer, offset);
+        return;
+    }
+
+    // Array case
+    // Get expression code and register
+    ASTNode_copy_code(node, node->assignment.location->location.index);
+    expReg = ASTNode_get_temp_reg(node->assignment.location->location.index);
+
+    // Get assigned value
     ASTNode_copy_code(node, node->assignment.value);
-    Operand expReg = ASTNode_get_temp_reg(node->assignment.value);
+    Operand valReg = ASTNode_get_temp_reg(node->assignment.value);
 
-    // Create ILOC code
-    EMIT3OP(STORE_AI, expReg, basePointer, offset);
+    // Calculate offset value
+    Operand offsetReg = virtual_register();
+    Operand wordSize = int_const(WORD_SIZE);
+    EMIT3OP(MULT_I, expReg, wordSize, offsetReg);
+
+    EMIT3OP(STORE_AO, valReg, basePointer, offsetReg);
 }
 
 void CodeGenVisitor_gen_conditional(NodeVisitor *visitor, ASTNode *node)
@@ -353,10 +384,6 @@ void CodeGenVisitor_previsit_while(NodeVisitor *visitor, ASTNode *node)
     Operand label1 = anonymous_label();
     Operand label2 = anonymous_label();
     Operand label3 = anonymous_label();
-
-    // Set for use by continue and break
-    DATA->current_continue_jump_label = label1;
-    DATA->current_break_jump_label = label3;
 
     // Set for use in postvisit while
     Operand *continue_label = malloc(sizeof(Operand));

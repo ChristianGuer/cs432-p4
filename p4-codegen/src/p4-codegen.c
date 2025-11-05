@@ -16,6 +16,18 @@ typedef struct CodeGenData
      * @brief Reference to the epilogue jump label for the current function
      */
     Operand current_epilogue_jump_label;
+    /**
+     * @brief Label to jump to when continues are encountered
+     */
+    Operand current_continue_jump_label;
+    /**
+     * @brief Label to jump to when breaks are encountered
+     */
+    Operand current_body_jump_label;
+    /**
+     * @brief Label to jump to when breaks are encountered
+     */
+    Operand current_break_jump_label;
 
     /* add any new desired state information (and clean it up in CodeGenData_free) */
 } CodeGenData;
@@ -149,7 +161,7 @@ void CodeGenVisitor_gen_funcdecl(NodeVisitor *visitor, ASTNode *node)
     long local_size = (long)ASTNode_get_attribute(node, "localSize");
     if (local_size > 0)
     {
-        EMIT3OP(ADD_I, stack_register(), int_const(local_size), stack_register());
+        EMIT3OP(ADD_I, stack_register(), int_const(-local_size), stack_register());
     }
 
     /* copy code from body */
@@ -241,7 +253,15 @@ void CodeGenVisitor_gen_binop(NodeVisitor *visitor, ASTNode *node)
     case DIVOP:
         EMIT3OP(DIV, left, right, newReg);
         break;
-    case MODOP:
+    case MODOP:;
+        // Set up registers to store additional calculations
+        Operand divReg = virtual_register();
+        Operand multReg = virtual_register();
+
+        // Calculate modulo value by calculating remainder
+        EMIT3OP(DIV, left, right, divReg);
+        EMIT3OP(MULT, divReg, right, multReg);
+        EMIT3OP(SUB, left, multReg, newReg);
         break;
     default:
         break;
@@ -327,6 +347,86 @@ void CodeGenVisitor_gen_conditional(NodeVisitor *visitor, ASTNode *node)
     }
 }
 
+void CodeGenVisitor_previsit_while(NodeVisitor *visitor, ASTNode *node)
+{
+    // Generate all three labels for while loop
+    Operand label1 = anonymous_label();
+    Operand label2 = anonymous_label();
+    Operand label3 = anonymous_label();
+
+    // Set for use by continue and break
+    DATA->current_continue_jump_label = label1;
+    DATA->current_break_jump_label = label3;
+
+    // Set for use in postvisit while
+    Operand *continue_label = malloc(sizeof(Operand));
+    Operand *body_label = malloc(sizeof(Operand));
+    Operand *break_label = malloc(sizeof(Operand));
+
+    *continue_label = label1;
+    *body_label = label2;
+    *break_label = label3;
+
+    ASTNode_set_attribute(node, "l1", continue_label, free);
+    ASTNode_set_attribute(node, "l2", body_label, free);
+    ASTNode_set_attribute(node, "l3", break_label, free);
+}
+
+void CodeGenVisitor_gen_while(NodeVisitor *visitor, ASTNode *node)
+{
+    // Get labels previously set
+    Operand label1 = *(Operand *)ASTNode_get_attribute(node, "l1");
+    Operand label2 = *(Operand *)ASTNode_get_attribute(node, "l2");
+    Operand label3 = *(Operand *)ASTNode_get_attribute(node, "l3");
+
+    // Generate ILOC
+    EMIT1OP(LABEL, label1);
+    // copy conditional
+    ASTNode_copy_code(node, node->whileloop.condition);
+    Operand condReg = ASTNode_get_temp_reg(node->whileloop.condition);
+    // evaluate conditional and copy body at each iteration
+    EMIT3OP(CBR, condReg, label2, label3);
+    EMIT1OP(LABEL, label2);
+    ASTNode_copy_code(node, node->whileloop.body);
+    // jump to top
+    EMIT1OP(JUMP, label1);
+    EMIT1OP(LABEL, label3);
+}
+
+/**
+ * Helper method to find while loop which continue and break belong to
+ */
+ASTNode *find_while_parent_helper(ASTNode *node)
+{
+    ASTNode *parent = (ASTNode *)ASTNode_get_attribute(node, "parent");
+    while (parent->type != WHILELOOP)
+    {
+        // recurse upward to find parent while loop
+        parent = (ASTNode *)ASTNode_get_attribute(parent, "parent");
+    }
+    return parent;
+}
+
+void CodeGenVisitor_gen_continue(NodeVisitor *visitor, ASTNode *node)
+{
+    // find parent while loop
+    ASTNode *parent = find_while_parent_helper(node);
+
+    // get label from parent and emit jump instruction
+    Operand label = *(Operand *)ASTNode_get_attribute(parent, "l1");
+    EMIT1OP(JUMP, label);
+}
+
+void CodeGenVisitor_gen_break(NodeVisitor *visitor, ASTNode *node)
+{
+    // find parent while loop
+    ASTNode *parent = find_while_parent_helper(node);
+
+    // get label from parent and emit jump instruction
+    Operand label = *(Operand *)ASTNode_get_attribute(parent, "l3");
+    EMIT1OP(JUMP, label);
+}
+
 #endif
 InsnList *generate_code(ASTNode *tree)
 {
@@ -346,6 +446,10 @@ InsnList *generate_code(ASTNode *tree)
     v->postvisit_location = CodeGenVisitor_gen_location;
     v->postvisit_assignment = CodeGenVisitor_gen_assignment;
     v->postvisit_conditional = CodeGenVisitor_gen_conditional;
+    v->previsit_whileloop = CodeGenVisitor_previsit_while;
+    v->postvisit_whileloop = CodeGenVisitor_gen_while;
+    v->postvisit_continue = CodeGenVisitor_gen_continue;
+    v->postvisit_break = CodeGenVisitor_gen_break;
 
     /* generate code into AST attributes */
     NodeVisitor_traverse_and_free(v, tree);

@@ -538,6 +538,10 @@ void CodeGenVisitor_gen_funccall(NodeVisitor *visitor, ASTNode *node)
 #endif
 InsnList *generate_code(ASTNode *tree)
 {
+    if (!tree)
+    {
+        return 0;
+    }
     InsnList *iloc = InsnList_new();
 
     NodeVisitor *v = NodeVisitor_new();

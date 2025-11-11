@@ -10,10 +10,10 @@
 
 /**
  * @brief Enables debug output (intermediate ILOC and trace output)
- * 
+ *
  * Disable this before submitting or running integration tests
  */
-const bool debug_mode = false;
+const bool debug_mode = true;
 
 /**
  * @brief Error message buffer
@@ -31,7 +31,7 @@ jmp_buf decaf_error;
  * This function is declared in common.h but must be defined here in main.c
  * because that's where the @c jmp_buf declaration is.
  */
-void Error_throw_printf (const char* format, ...)
+void Error_throw_printf(const char *format, ...)
 {
     /* delegate to vsnprintf for error message formatting */
     va_list args;
@@ -50,16 +50,18 @@ void Error_throw_printf (const char* format, ...)
  * @param text String buffer destination (must be #MAX_FILE_SIZE characters long)
  * @returns True if and only if the file read was successful.
  */
-bool read_file (const char* filename, char* text)
+bool read_file(const char *filename, char *text)
 {
-    FILE* input = fopen(filename, "r");
-    if (input == NULL) {
+    FILE *input = fopen(filename, "r");
+    if (input == NULL)
+    {
         return false;
     }
     size_t nchars = 0;
-    char* p = text;
+    char *p = text;
     int c;
-    while (nchars < MAX_FILE_SIZE && (c = fgetc(input)) != EOF) {
+    while (nchars < MAX_FILE_SIZE && (c = fgetc(input)) != EOF)
+    {
         *p++ = (char)c;
         nchars++;
     }
@@ -76,29 +78,32 @@ bool read_file (const char* filename, char* text)
  * @returns @c EXIT_SUCCESS if the compilation succeeds and @c EXIT_FAILURE
  * otherwise
  */
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     /* check for filename */
-    if (argc != 2) {
+    if (argc != 2)
+    {
         fprintf(stderr, "Usage: %s <decaf-filename>\n", argv[0]);
         return EXIT_FAILURE;
     }
-    char* filename = argv[argc-1];
+    char *filename = argv[argc - 1];
 
     /* read file */
     char text[MAX_FILE_SIZE];
-    if (!read_file(filename, text)) {
+    if (!read_file(filename, text))
+    {
         fprintf(stderr, "Could not read file: %s", filename);
         exit(EXIT_FAILURE);
     }
 
     /* FRONT END */
 
-    TokenQueue* tokens = NULL;
-    ASTNode* tree = NULL;
+    TokenQueue *tokens = NULL;
+    ASTNode *tree = NULL;
 
     /* fatal errors are possible in the front end, so check for them */
-    if (setjmp(decaf_error) == 0) {
+    if (setjmp(decaf_error) == 0)
+    {
 
         /* PROJECT 1: lexer */
         tokens = lex(text);
@@ -109,13 +114,16 @@ int main(int argc, char** argv)
         /* clean up tokens (no longer needed) */
         TokenQueue_free(tokens);
         tokens = NULL;
-
-    } else {
+    }
+    else
+    {
 
         /* handle fatal error: print message and clean up */
         fprintf(stderr, "%s", decaf_error_msg);
-        if (tokens   != NULL) TokenQueue_free(tokens);
-        if (tree     != NULL) ASTNode_free(tree);
+        if (tokens != NULL)
+            TokenQueue_free(tokens);
+        if (tree != NULL)
+            ASTNode_free(tree);
         exit(EXIT_FAILURE);
     }
 
@@ -129,15 +137,17 @@ int main(int argc, char** argv)
     NodeVisitor_traverse_and_free(BuildSymbolTablesVisitor_new(), tree);
 
     /* PROJECT 3: analysis */
-    ErrorList* errors = analyze(tree);
+    ErrorList *errors = analyze(tree);
 
     /* print analysis errors */
-    FOR_EACH(AnalysisError*, err, errors) {
+    FOR_EACH(AnalysisError *, err, errors)
+    {
         printf("%s\n", err->message);
     }
 
     /* abort if analysis has reported errors */
-    if (!ErrorList_is_empty(errors)) {
+    if (!ErrorList_is_empty(errors))
+    {
         ASTNode_free(tree);
         ErrorList_free(errors);
         exit(EXIT_FAILURE);
@@ -153,14 +163,16 @@ int main(int argc, char** argv)
     NodeVisitor_traverse_and_free(AllocateSymbolsVisitor_new(), tree);
 
     /* PROJECT 4: code gen */
-    InsnList* iloc = generate_code(tree);
+    InsnList *iloc = generate_code(tree);
 
     /* generate graphical AST */
-    FILE* graph_file = fopen("iloc-tree.dot", "w");
-    if (graph_file != NULL) {
+    FILE *graph_file = fopen("iloc-tree.dot", "w");
+    if (graph_file != NULL)
+    {
         NodeVisitor_traverse_and_free(GenerateASTGraph_new(graph_file), tree);
         fclose(graph_file);
-        if (system("dot -Tpng -o iloc-tree.png iloc-tree.dot") == -1) {
+        if (system("dot -Tpng -o iloc-tree.png iloc-tree.dot") == -1)
+        {
             fprintf(stderr, "Could not generate AST image\n");
         }
     }
@@ -170,7 +182,8 @@ int main(int argc, char** argv)
     tree = NULL;
 
     /* print ILOC if debug mode is enabled */
-    if (debug_mode) {
+    if (debug_mode)
+    {
         InsnList_print(iloc, stdout);
     }
 

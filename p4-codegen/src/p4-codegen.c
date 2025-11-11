@@ -152,7 +152,7 @@ void CodeGenVisitor_gen_funcdecl(NodeVisitor *visitor, ASTNode *node)
     {
         EMIT3OP(ADD_I, stack_register(), int_const(-local_size), stack_register());
     }*/
-    //Always emit even if local size is 0
+    // Always emit even if local size is 0
     EMIT3OP(ADD_I, stack_register(), int_const(-local_size), stack_register());
 
     /* copy code from body */
@@ -176,7 +176,7 @@ void CodeGenVisitor_gen_block(NodeVisitor *visitor, ASTNode *node)
 
 void CodeGenVisitor_gen_return(NodeVisitor *visitor, ASTNode *node)
 {
-    if(node->funcreturn.value)
+    if (node->funcreturn.value)
     {
         ASTNode_copy_code(node, node->funcreturn.value);
         Operand reg = ASTNode_get_temp_reg(node->funcreturn.value);
@@ -458,8 +458,8 @@ void CodeGenVisitor_gen_break(NodeVisitor *visitor, ASTNode *node)
     EMIT1OP(JUMP, label);
 }
 
-
-static bool is_builtin_print(const char* name) {
+static bool is_builtin_print(const char *name)
+{
     return strncmp(name, "print_int", 16) == 0 ||
            strncmp(name, "print_bool", 16) == 0 ||
            strncmp(name, "print_str", 16) == 0;
@@ -468,28 +468,40 @@ static bool is_builtin_print(const char* name) {
 void CodeGenVisitor_gen_funccall(NodeVisitor *visitor, ASTNode *node)
 {
 
-    const char* fname = node->funccall.name;
+    const char *fname = node->funccall.name;
 
     /* Handle built-in prints with a single PRINT */
-    if (is_builtin_print(fname)) {
+    if (is_builtin_print(fname))
+    {
         /* exactly one argument */
-        ASTNode* arg = NULL;
-        FOR_EACH(ASTNode*, a, node->funccall.arguments) { arg = a; break; }
+        ASTNode *arg = NULL;
+        FOR_EACH(ASTNode *, a, node->funccall.arguments)
+        {
+            arg = a;
+            break;
+        }
 
         /* safety: if there's somehow no arg, just return */
-        if (!arg) return;
+        if (!arg)
+            return;
 
         ASTNode_copy_code(node, arg);
 
-        if (strncmp(fname, "print_str", 16) == 0) {
-            if (arg->type == LITERAL && arg->literal.type == STR) {
+        if (strncmp(fname, "print_str", 16) == 0)
+        {
+            if (arg->type == LITERAL && arg->literal.type == STR)
+            {
                 EMIT1OP(PRINT, str_const(arg->literal.string));
-            } else {
+            }
+            else
+            {
                 /* fallback: print the evaluated register numerically */
                 Operand areg = ASTNode_get_temp_reg(arg);
                 EMIT1OP(PRINT, areg);
             }
-        } else {
+        }
+        else
+        {
             /* print_int / print_bool: print evaluated integer/boolean register */
             Operand areg = ASTNode_get_temp_reg(arg);
             EMIT1OP(PRINT, areg);
@@ -498,25 +510,29 @@ void CodeGenVisitor_gen_funccall(NodeVisitor *visitor, ASTNode *node)
     }
 
     int argc = node->funccall.arguments->size;
-    //make array to hold param regs
-    Operand* arg_regs = (Operand*)calloc(argc, sizeof(Operand));
+    // make array to hold param regs
+    Operand *arg_regs = (Operand *)calloc(argc, sizeof(Operand));
     CHECK_MALLOC_PTR(arg_regs);
 
     int i = 0;
-    FOR_EACH(ASTNode*, arg, node->funccall.arguments)
+    FOR_EACH(ASTNode *, arg, node->funccall.arguments)
     {
-        //copy codeto reg
+        // copy codeto reg
         ASTNode_copy_code(node, arg);
         arg_regs[i++] = ASTNode_get_temp_reg(arg);
     }
 
-    for (int j = argc - 1; j >= 0; --j) 
+    for (int j = argc - 1; j >= 0; --j)
     {
         EMIT1OP(PUSH, arg_regs[j]);
     }
     free(arg_regs);
     EMIT1OP(CALL, call_label(fname));
-    
+
+    EMIT3OP(ADD_I, stack_register(), int_const(8 * argc), stack_register());
+    Operand retReg = virtual_register();
+    EMIT2OP(I2I, return_register(), retReg);
+    ASTNode_set_temp_reg(node, retReg);
 }
 
 #endif

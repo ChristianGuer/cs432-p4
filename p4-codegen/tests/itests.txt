@@ -1,5 +1,5 @@
-A_memcheck                     FAIL (see outputs/A_memcheck.diff for details)
-A_print_int                    FAIL (see outputs/A_print_int.diff for details)
+A_memcheck                     pass
+A_print_int                    pass
 No memory leak found.
 No uninitialized value found.
 ========================================

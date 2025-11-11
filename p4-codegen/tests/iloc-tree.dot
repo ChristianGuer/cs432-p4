@@ -1,14 +1,14 @@
 digraph AST {
-4 [shape=box, label="Literal value=7\nreg: r0\ncode: \nloadI 7 => r0\ntype: int"];
-3 [shape=box, label="FuncCall name='print_int'\ntype: void"];
+4 [shape=box, label="Literal value=7\ncode: \nloadI 7 => r0\nreg: r0\ntype: int"];
+3 [shape=box, label="FuncCall name='print_int'\ncode: \nloadI 7 => r0\nprint r0\ntype: void"];
 3 -> 4;
-6 [shape=box, label="Literal value=0\nreg: r1\ncode: \nloadI 0 => r1\ntype: int"];
-5 [shape=box, label="Return\ncode: \nloadI 5 => r2\ni2i r2 => RET"];
+6 [shape=box, label="Literal value=0\ncode: \nloadI 0 => r1\nreg: r1\ntype: int"];
+5 [shape=box, label="Return\ncode: \nloadI 0 => r1\ni2i r1 => RET\njump l0"];
 5 -> 6;
-2 [shape=box, label="Block\ncode: \nloadI 5 => r2\ni2i r2 => RET\nsymbolTable: (empty)"];
+2 [shape=box, label="Block\ncode: \nloadI 7 => r0\nprint r0\nloadI 0 => r1\ni2i r1 => RET\njump l0\nsymbolTable: (empty)"];
 2 -> 3;
 2 -> 5;
-1 [shape=box, label="FuncDecl name='main'\ncode: \nmain:\nloadI 5 => r2\ni2i r2 => RET\nnop\nloadI 5 => r3\ni2i r3 => RET\nl0:\nreturn\nlocalSize: 0\nsymbolTable: (empty)"];
+1 [shape=box, label="FuncDecl name='main'\ncode: \nmain:\npush BP\ni2i SP => BP\naddI SP, 0 => SP\nloadI 7 => r0\nprint r0\nloadI 0 => r1\ni2i r1 => RET\njump l0\nl0:\ni2i BP => SP\npop BP\nreturn\nlocalSize: 0\nsymbolTable: (empty)"];
 1 -> 2;
 0 [shape=box, label="Program\ncode: (...)\nstaticSize: 0\nsymbolTable: \n  print_int : (int) -> void\n  print_bool : (bool) -> void\n  print_str : (str) -> void\n  main : () -> int"];
 0 -> 1;

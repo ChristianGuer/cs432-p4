@@ -1,14 +1,7 @@
 Running suite(s): Default
-14%: Checks: 14, Failures: 11, Errors: 1
-public.c:12:F:Public:D_sanity_zero:0: Assertion 'run_program("def int main() { return 0; }") == 0' failed: run_program("def int main() { return 0; }") == 5, 0 == 0
-public.c:14:F:Public:D_expr_int:0: Assertion 'run_expression("7") == 7' failed: run_expression("7") == 5, 7 == 7
-public.c:16:F:Public:D_expr_long:0: Assertion 'run_expression("1+2+3+4") == 10' failed: run_expression("1+2+3+4") == 5, 10 == 10
-public.c:18:F:Public:D_expr_sanity_zero:0: Assertion 'run_expression("0") == 0' failed: run_expression("0") == 5, 0 == 0
-public.c:20:F:Public:C_expr_negate:0: Assertion 'run_expression("-4") == -4' failed: run_expression("-4") == 5, -4 == -4
-public.c:22:F:Public:C_assignment:0: Assertion 'run_main("int a; a = 2 + 3 * 4; return a;") == 14' failed: run_main("int a; a = 2 + 3 * 4; return a;") == 5, 14 == 14
-public.c:23:F:Public:C_global_assignment:0: Assertion 'run_program("int a; def int main() { a = 2 + 3 * 4; return a; }") == 14' failed: run_program("int a; def int main() { a = 2 + 3 * 4; return a; }") == 5, 14 == 14
-public.c:25:F:Public:B_expr_not_t:0: Assertion 'run_bool_expression("!true") == 0' failed: run_bool_expression("!true") == 5, 0 == 0
-public.c:27:F:Public:B_conditional:0: Assertion 'run_main("  int r; " "  if (true) { r = 2; } " "  else { r = 3; } " "  return r;") == 2' failed: run_main("  int r; " "  if (true) { r = 2; } " "  else { r = 3; } " "  return r;") == 5, 2 == 2
-public.c:33:F:Public:B_whileloop:0: Assertion 'run_main("  int a; a = 0; " "  while (a < 10) { a = a + 1; } " "  return a;") == 10' failed: run_main("  int a; a = 0; " "  while (a < 10) { a = a + 1; } " "  return a;") == 5, 10 == 10
-public.c:38:F:Public:B_funccall:0: Assertion 'run_program("def int ten() { return 10; } " "def int main() { return ten() + ten(); }") == 20' failed: run_program("def int ten() { return 10; } " "def int main() { return ten() + ten(); }") == 5, 20 == 20
+ERROR: Node is missing a temporary registerERROR: Node is missing a temporary registerERROR: Register r-1 does not exist
+ERROR: Node is missing a temporary registerERROR: Register r-1 does not exist
+78%: Checks: 14, Failures: 0, Errors: 3
+public.c:38:E:Public:B_funccall:0: (after this point) Early exit with return value 1
+public.c:42:E:Public:A_funccall_params:0: (after this point) Early exit with return value 1
 private.c:3:E:Private:A_null_tree:0: (after this point) Received signal 11 (Segmentation fault)

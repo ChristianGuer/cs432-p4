@@ -1,7 +1,2 @@
 Running suite(s): Default
-ERROR: Node is missing a temporary registerERROR: Node is missing a temporary registerERROR: Register r-1 does not exist
-ERROR: Node is missing a temporary registerERROR: Register r-1 does not exist
-78%: Checks: 14, Failures: 0, Errors: 3
-public.c:38:E:Public:B_funccall:0: (after this point) Early exit with return value 1
-public.c:42:E:Public:A_funccall_params:0: (after this point) Early exit with return value 1
-private.c:3:E:Private:A_null_tree:0: (after this point) Received signal 11 (Segmentation fault)
+100%: Checks: 14, Failures: 0, Errors: 0

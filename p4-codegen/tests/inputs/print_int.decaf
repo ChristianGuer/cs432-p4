@@ -4,15 +4,45 @@
 //     return 0;
 // }
 
-int x[5];
+// int x[5];
 
-def int main()
+// def int main()
+// {
+//     x[1] = 1;
+//     x[1 + 2] = 3;
+//     return x[1] + x[add()];
+// }
+
+// def int add() {
+//     return 6;
+// }
+
+int nums[100];
+
+
+def int fact(int n)
 {
-    x[1] = 1;
-    x[1 + 2] = 3;
-    return x[1] + x[3];
+    //print_int(n);
+
+    if( n <= 1){
+        return 1;
+    }
+    return  n * fact( n - 1);
 }
 
-def int add() {
+def void test_fact(int a, int correct)
+{
+    int f;
+    f = fact(a);
+    print_int(f);
+    if (f != correct) {
+        print_str(" INCORRECT!");
+    }
+    print_str("\n");
+    return;
+}
+def int main()
+{
+    test_fact(5, 120);
     return 0;
 }

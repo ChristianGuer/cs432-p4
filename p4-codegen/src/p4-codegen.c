@@ -190,6 +190,11 @@ void CodeGenVisitor_gen_literal(NodeVisitor *visitor, ASTNode *node)
 {
     Operand reg = virtual_register();
     ASTNode_set_temp_reg(node, reg);
+    //isnt considering strings here
+    if (node->literal.type == STR)
+    {
+        return;
+    }
     EMIT2OP(LOAD_I, int_const(node->literal.integer), reg);
 }
 
@@ -201,9 +206,14 @@ void CodeGenVisitor_gen_binop(NodeVisitor *visitor, ASTNode *node)
     // copy left and get reg
     ASTNode_copy_code(node, node->binaryop.left);
     Operand left = ASTNode_get_temp_reg(node->binaryop.left);
+    EMIT1OP(PUSH, left);
     // copy right and get reg
     ASTNode_copy_code(node, node->binaryop.right);
     Operand right = ASTNode_get_temp_reg(node->binaryop.right);
+
+    Operand leftPop = virtual_register();
+    EMIT1OP(POP, leftPop);
+
     Operand newReg = virtual_register();
     ASTNode_set_temp_reg(node, newReg);
 
@@ -212,40 +222,40 @@ void CodeGenVisitor_gen_binop(NodeVisitor *visitor, ASTNode *node)
     switch (binop)
     {
     case OROP:
-        EMIT3OP(OR, left, right, newReg);
+        EMIT3OP(OR, leftPop, right, newReg);
         break;
     case ANDOP:
-        EMIT3OP(AND, left, right, newReg);
+        EMIT3OP(AND, leftPop, right, newReg);
         break;
     case EQOP:
-        EMIT3OP(CMP_EQ, left, right, newReg);
+        EMIT3OP(CMP_EQ, leftPop, right, newReg);
         break;
     case NEQOP:
-        EMIT3OP(CMP_NE, left, right, newReg);
+        EMIT3OP(CMP_NE, leftPop, right, newReg);
         break;
     case LTOP:
-        EMIT3OP(CMP_LT, left, right, newReg);
+    EMIT3OP(CMP_LT, leftPop, right, newReg);
         break;
     case LEOP:
-        EMIT3OP(CMP_LE, left, right, newReg);
+        EMIT3OP(CMP_LE, leftPop, right, newReg);
         break;
     case GEOP:
-        EMIT3OP(CMP_GE, left, right, newReg);
+        EMIT3OP(CMP_GE, leftPop, right, newReg);
         break;
     case GTOP:
-        EMIT3OP(CMP_GT, left, right, newReg);
+        EMIT3OP(CMP_GT, leftPop, right, newReg);
         break;
     case ADDOP:
-        EMIT3OP(ADD, left, right, newReg);
+        EMIT3OP(ADD, leftPop, right, newReg);
         break;
     case SUBOP:
-        EMIT3OP(SUB, left, right, newReg);
+        EMIT3OP(SUB, leftPop, right, newReg);
         break;
     case MULOP:
-        EMIT3OP(MULT, left, right, newReg);
+        EMIT3OP(MULT, leftPop, right, newReg);
         break;
     case DIVOP:
-        EMIT3OP(DIV, left, right, newReg);
+        EMIT3OP(DIV, leftPop, right, newReg);
         break;
     case MODOP:;
         // Set up registers to store additional calculations
@@ -253,9 +263,9 @@ void CodeGenVisitor_gen_binop(NodeVisitor *visitor, ASTNode *node)
         Operand multReg = virtual_register();
 
         // Calculate modulo value by calculating remainder
-        EMIT3OP(DIV, left, right, divReg);
+        EMIT3OP(DIV, leftPop, right, divReg);
         EMIT3OP(MULT, divReg, right, multReg);
-        EMIT3OP(SUB, left, multReg, newReg);
+        EMIT3OP(SUB, leftPop, multReg, newReg);
         break;
     default:
         break;
@@ -521,7 +531,6 @@ void CodeGenVisitor_gen_funccall(NodeVisitor *visitor, ASTNode *node)
         ASTNode_copy_code(node, arg);
         arg_regs[i++] = ASTNode_get_temp_reg(arg);
     }
-
     for (int j = argc - 1; j >= 0; --j)
     {
         EMIT1OP(PUSH, arg_regs[j]);
@@ -529,8 +538,9 @@ void CodeGenVisitor_gen_funccall(NodeVisitor *visitor, ASTNode *node)
     free(arg_regs);
     EMIT1OP(CALL, call_label(fname));
 
-    EMIT3OP(ADD_I, stack_register(), int_const(8 * argc), stack_register());
+    EMIT3OP(ADD_I, stack_register(), int_const(WORD_SIZE * argc), stack_register());
     Operand retReg = virtual_register();
+    //error in here
     EMIT2OP(I2I, return_register(), retReg);
     ASTNode_set_temp_reg(node, retReg);
 }

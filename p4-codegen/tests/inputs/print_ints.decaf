@@ -1,6 +1,12 @@
+def int foo(int n)
+{
+    if (n <= 0) {
+        return 0;
+    }
+    return n + foo(n - 1);
+}
+
 def int main()
 {
-    print_int(123);
-    print_int(42);
-    return 0;
+    return foo(6);
 }

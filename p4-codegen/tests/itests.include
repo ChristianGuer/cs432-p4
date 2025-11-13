@@ -5,4 +5,4 @@
 
 run_test    A_memcheck                  "inputs/sanity.decaf"
 run_test    A_print_int                 "inputs/print_int.decaf"
-
+# run_test    self_p0                     "inputs/p0.decaf"

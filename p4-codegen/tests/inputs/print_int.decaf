@@ -27,22 +27,44 @@ def int fact(int n)
     if( n <= 1){
         return 1;
     }
-    return  n * fact( n - 1);
+    return n * fact( n - 1);
 }
 
-def void test_fact(int a, int correct)
+// def void test_fact(int a, int correct)
+// {
+//     int f;
+//     f = fact(a);
+//     print_int(f);
+//     if (f != correct) {
+//         print_str(" INCORRECT!");
+//     }
+//     print_str("\n");
+//     return;
+// }
+def bool is_prime(int n)
 {
-    int f;
-    f = fact(a);
-    print_int(f);
-    if (f != correct) {
-        print_str(" INCORRECT!");
+    int half_n;
+    half_n = n /2 + 1;
+
+    if (n <= 1){
+        return false;
     }
-    print_str("\n");
-    return;
+    while (half_n > 1){
+        if( n % half_n == 0){
+            return false;
+        }
+        half_n = half_n - 1;
+    }
+    return true;
 }
+
 def int main()
 {
-    test_fact(5, 120);
+    //test_fact(5, 120);
+    int p;
+    p = ;
+    print_bool(is_prime(p));
+    //print_int(fact(5));
+    
     return 0;
 }
